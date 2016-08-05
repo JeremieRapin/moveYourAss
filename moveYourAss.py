@@ -2,6 +2,17 @@
 
 # This file must be copy into .config/autostart folder
 # mv ~/scripts/moveYourAss.py ~/.config/autostart/
+# sudo dnf install dbus-python-devel
+#
+# In a file named as you want with extension .desktop in  ~/.local/share/applications
+#
+#[Desktop Entry]
+# Encoding=UTF-8
+# Name=Move Your Ass
+# Exec=python /home/jeremie/scripts/moveYourAss/moveYourAss.py --logfile /home/jeremie/logAll.txt
+# Icon=/usr/share/icons/Adwaita/32x32/emotes/face-laugh.png
+# Type=Application
+# Categories=Wellness;
 
 import dbus
 import dbus.mainloop.glib
