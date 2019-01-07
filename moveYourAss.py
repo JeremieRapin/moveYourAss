@@ -22,21 +22,32 @@ import os
 import time
 import sys
 import getopt
+# import logging
+# import logging.handlers
+import syslog
+
 gi.require_version('Notify', '0.7')
 from gi.repository import Notify
 from gi.repository import GObject
 
 LOGIN_VALUE   = 0
 LOGOUT_VALUE  = 1
-WATCHING_TIME = 2700000 # in ms -- 45 minutes
+WATCHING_TIME = 2400000 # in ms -- 40 minutes
 LOCK_SCREEN   = 1 # if lock screen is set, then after WATCHING_TIME, the screen will be lock
 
 #watcher must be called after callback defintion but before use.
 watcher = -1
+#coffeeWatcher is used to lock on coffee request
+coffeeWatcher = -1
+#homeWatcher is used to lock on home request
+homeWatcher = -1
 # set activity time at startup in order to have the right time at the first logout
 activityTime = time.time()
 # log file
 logfile=""
+#A syslog logger
+logger = -1
+
 
 #log activityTime in file
 def log():
@@ -62,6 +73,28 @@ def message():
   # lock screen
   os.system('gnome-screensaver-command -l')
 
+def coffeeMessage():
+  global coffeeWatcher
+  coffeeWatcher = -1
+
+  coffeeNotif=Notify.Notification.new("Coffee Time", "Go take a coffee", "dialog-information")
+  coffeeNotif.show()
+
+  # lock screen after 10 seconds
+  time.sleep(10)
+  os.system('gnome-screensaver-command -l')
+
+def homeMessage():
+  global homeWatcher
+  homeWatcher = -1
+
+  homeNotif=Notify.Notification.new("End of the day", "Go take a ride", "dialog-information")
+  homeNotif.show()
+
+  # lock screen after 30 seconds
+  time.sleep(30)
+  os.system('gnome-screensaver-command -l')
+
 # message displaying.
 def displayTime():
   global activityTime
@@ -77,24 +110,55 @@ def displayTime():
 # Stop the timer, if user is logout
 def stopTimer():
   global watcher
+  global coffeeWatcher
+  global homeWatcher
+
   if(watcher != -1):
-    # print("stop timer")
+    syslog.syslog(syslog.LOG_INFO, "[stopTimer] remove periodic timer")
     GObject.source_remove(watcher)
     watcher = -1;
 
+  if(coffeeWatcher != -1):
+    syslog.syslog(syslog.LOG_INFO, "[stopTimer] remove coffee timer")
+    GObject.source_remove(coffeeWatcher)
+    coffeeWatcher = -1;
+
+  if(homeWatcher != -1):
+    syslog.syslog(syslog.LOG_INFO, "[stopTimer] remove home timer")
+    GObject.source_remove(homeWatcher)
+    homeWatcher = -1;
+
 # A new login from user is detected start the timer
 def login():
-  # print("start timer")
+  syslog.syslog(syslog.LOG_INFO, "[login] enter")
   global watcher
+  global coffeeWatcher
+  global homeWatcher
   global activityTime
   if (LOCK_SCREEN == 1):
+    syslog.syslog(syslog.LOG_INFO, "[login] add periodic timer: " + str(int(WATCHING_TIME / 1000)) + " s")
     watcher = GObject.timeout_add(WATCHING_TIME, message)
 
   activityTime = time.time()
 
+  if (coffeeWatcher == -1):
+    # Set next logout to quit for coffee
+    coffee = ((datetime.datetime.today().replace(hour=9, minute=0, second=0, microsecond=0) - datetime.datetime.today()).total_seconds() * 1000)
+    if (coffee > 0):
+      syslog.syslog(syslog.LOG_INFO, "[login] add coffee timer: " + str(int(coffee / 1000)) + " s")
+      coffeeWatcher = GObject.timeout_add(coffee, coffeeMessage)
+
+  if (homeWatcher == -1):
+    # Set next logout to quit for going home
+    home = ((datetime.datetime.today().replace(hour=16, minute=28, second=30, microsecond=0) - datetime.datetime.today()).total_seconds() * 1000)
+    if (home > 0):
+      syslog.syslog(syslog.LOG_INFO, "[login] add home timer: " + str(int(home / 1000)) + " s")
+      homeWatcher = GObject.timeout_add(home, homeMessage)
+
 # A new logout from user is detected
 def logout():
   global activityTime
+  syslog.syslog(syslog.LOG_INFO, "[logout]")
 
   stopTimer()
   activityTime = time.time() - activityTime
@@ -105,10 +169,8 @@ def logHandler(*args, **keywords):
   status = args[0];
 
   if (status == LOGIN_VALUE):
-    print("login")
     login();
   else:
-    print("logout")
     logout();
 
 # Get parameters arguments
@@ -142,5 +204,12 @@ if __name__ == '__main__':
 
     bus.add_signal_receiver(logHandler, dbus_interface="org.gnome.ScreenSaver", signal_name="ActiveChanged")
 
+    syslog.syslog(syslog.LOG_NOTICE, "[Start]")
+
     loop = GObject.MainLoop()
-    loop.run()
+    GObject.timeout_add(1000, login)
+
+    try:
+      loop.run()
+    except:
+      syslog.syslog(syslog.LOG_ERR, "[Stop]")
