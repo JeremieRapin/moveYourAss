@@ -149,8 +149,13 @@ def login():
       coffeeWatcher = GObject.timeout_add(coffee, coffeeMessage)
 
   if (homeWatcher == -1):
-    # Set next logout to quit for going home
-    home = ((datetime.datetime.today().replace(hour=16, minute=28, second=30, microsecond=0) - datetime.datetime.today()).total_seconds() * 1000)
+    # Set next logout to quit for going home, If Friday, quit 10 minutes before
+    day = datetime.datetime.today()
+    if day.weekday() != 4:
+      home = ((day.replace(hour=16, minute=28, second=30, microsecond=0) - datetime.datetime.today()).total_seconds() * 1000)
+    else:
+      home = ((day.replace(hour=16, minute=18, second=30, microsecond=0) - datetime.datetime.today()).total_seconds() * 1000)
+
     if (home > 0):
       syslog.syslog(syslog.LOG_INFO, "[login] add home timer: " + str(int(home / 1000)) + " s")
       homeWatcher = GObject.timeout_add(home, homeMessage)
