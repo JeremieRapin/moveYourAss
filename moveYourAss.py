@@ -28,7 +28,7 @@ import syslog
 
 gi.require_version('Notify', '0.7')
 from gi.repository import Notify
-from gi.repository import GObject
+from gi.repository import GLib
 
 LOGIN_VALUE   = 0
 LOGOUT_VALUE  = 1
@@ -115,17 +115,17 @@ def stopTimer():
 
   if(watcher != -1):
     syslog.syslog(syslog.LOG_INFO, "[stopTimer] remove periodic timer")
-    GObject.source_remove(watcher)
+    GLib.source_remove(watcher)
     watcher = -1;
 
   if(coffeeWatcher != -1):
     syslog.syslog(syslog.LOG_INFO, "[stopTimer] remove coffee timer")
-    GObject.source_remove(coffeeWatcher)
+    GLib.source_remove(coffeeWatcher)
     coffeeWatcher = -1;
 
   if(homeWatcher != -1):
     syslog.syslog(syslog.LOG_INFO, "[stopTimer] remove home timer")
-    GObject.source_remove(homeWatcher)
+    GLib.source_remove(homeWatcher)
     homeWatcher = -1;
 
 # A new login from user is detected start the timer
@@ -137,7 +137,7 @@ def login():
   global activityTime
   if (LOCK_SCREEN == 1):
     syslog.syslog(syslog.LOG_INFO, "[login] add periodic timer: " + str(int(WATCHING_TIME / 1000)) + " s")
-    watcher = GObject.timeout_add(WATCHING_TIME, message)
+    watcher = GLib.timeout_add(WATCHING_TIME, message)
 
   activityTime = time.time()
 
@@ -146,7 +146,7 @@ def login():
     coffee = ((datetime.datetime.today().replace(hour=9, minute=0, second=0, microsecond=0) - datetime.datetime.today()).total_seconds() * 1000)
     if (coffee > 0):
       syslog.syslog(syslog.LOG_INFO, "[login] add coffee timer: " + str(int(coffee / 1000)) + " s")
-      coffeeWatcher = GObject.timeout_add(coffee, coffeeMessage)
+      coffeeWatcher = GLib.timeout_add(coffee, coffeeMessage)
 
   if (homeWatcher == -1):
     # Set next logout to quit for going home, If Friday, quit 10 minutes before
@@ -158,7 +158,7 @@ def login():
 
     if (home > 0):
       syslog.syslog(syslog.LOG_INFO, "[login] add home timer: " + str(int(home / 1000)) + " s")
-      homeWatcher = GObject.timeout_add(home, homeMessage)
+      homeWatcher = GLib.timeout_add(home, homeMessage)
 
 # A new logout from user is detected
 def logout():
@@ -211,8 +211,8 @@ if __name__ == '__main__':
 
     syslog.syslog(syslog.LOG_NOTICE, "[Start]")
 
-    loop = GObject.MainLoop()
-    GObject.timeout_add(1000, login)
+    loop = GLib.MainLoop()
+    GLib.timeout_add(1000, login)
 
     try:
       loop.run()
