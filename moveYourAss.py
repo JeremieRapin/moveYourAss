@@ -60,7 +60,7 @@ def log():
       f.write("%s --> %s\n" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), str(datetime.timedelta(seconds=activityTime))))
       f.close()
     except IOError:
-      print "Could not use file: %s" % logfile
+      print ("Could not use file: %s" % logfile)
 
 # message displaying.
 def message():
@@ -179,12 +179,12 @@ def main(argv):
   try:
     opts, args = getopt.getopt(argv,"hles",["logfile=","seconds=","enabled="])
   except getopt.GetoptError:
-    print 'test.py -l <logfile>'
+    print ('test.py -l <logfile>')
     sys.exit(2)
 
   for opt, arg in opts:
     if opt == '-h':
-      print 'test.py -l <logfile> -s <secondsBeforeLock> -e <lockenabled>'
+      print ('test.py -l <logfile> -s <secondsBeforeLock> -e <lockenabled>')
       sys.exit()
     elif opt in ("-l", "--logfile"):
       logfile = arg
